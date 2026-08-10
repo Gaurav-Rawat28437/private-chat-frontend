@@ -5,30 +5,43 @@ async function request(
   endpoint,
   options = {}
 ) {
-  const response = await fetch(
-    `${API_URL}${endpoint}`,
-    {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(options.headers || {}),
-      },
-    }
-  );
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      data.message ||
-        "Something went wrong"
+  try {
+    const response = await fetch(
+      `${API_URL}${endpoint}`,
+      {
+        ...options,
+        headers: {
+          "Content-Type":
+            "application/json",
+          ...(options.headers || {}),
+        },
+      }
     );
-  }
 
-  return data;
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ||
+          "Something went wrong"
+      );
+    }
+
+    return data;
+  } catch (error) {
+    console.error(
+      "API Error:",
+      error.message
+    );
+
+    throw error;
+  }
 }
 
-export async function createUser(username) {
+export async function createUser(
+  username
+) {
   return request(
     "/api/users",
     {
@@ -41,7 +54,9 @@ export async function createUser(username) {
 }
 
 export async function getUsers() {
-  return request("/api/users");
+  return request(
+    "/api/users"
+  );
 }
 
 export async function getMessages(
