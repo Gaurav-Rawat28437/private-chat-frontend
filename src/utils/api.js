@@ -1,49 +1,53 @@
 const API_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  "http://localhost:8080";
+  import.meta.env.VITE_BACKEND_URL;
 
-async function request(endpoint, options = {}) {
-  try {
-    const response = await fetch(
-      `${API_URL}${endpoint}`,
-      {
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers,
-        },
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data.message || "Something went wrong"
-      );
+async function request(
+  endpoint,
+  options = {}
+) {
+  const response = await fetch(
+    `${API_URL}${endpoint}`,
+    {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      },
     }
+  );
 
-    return data;
-  } catch (error) {
-    console.error("API Error:", error.message);
-    throw error;
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data.message ||
+        "Something went wrong"
+    );
   }
+
+  return data;
 }
 
 export async function createUser(username) {
-  return request("/api/users", {
-    method: "POST",
-    body: JSON.stringify({
-      username,
-    }),
-  });
+  return request(
+    "/api/users",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        username,
+      }),
+    }
+  );
 }
 
 export async function getUsers() {
   return request("/api/users");
 }
 
-export async function getMessages(user1, user2) {
+export async function getMessages(
+  user1,
+  user2
+) {
   return request(
     `/api/messages/${user1}/${user2}`
   );
@@ -54,12 +58,15 @@ export async function sendMessage(
   receiver,
   text
 ) {
-  return request("/api/messages", {
-    method: "POST",
-    body: JSON.stringify({
-      sender,
-      receiver,
-      text,
-    }),
-  });
+  return request(
+    "/api/messages",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        sender,
+        receiver,
+        text,
+      }),
+    }
+  );
 }
