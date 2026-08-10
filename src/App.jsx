@@ -7,19 +7,24 @@ import UserList from "./components/UserList"
 import socket from "./utils/socket"
 
 function App() {
-  const [currentUser, setCurrentUser] = useState(() => {
-    const savedUser =
-      localStorage.getItem("currentUser")
+  const [currentUser, setCurrentUser] =
+    useState(() => {
+      const savedUser =
+        sessionStorage.getItem(
+          "currentUser"
+        )
 
-    return savedUser
-      ? JSON.parse(savedUser)
-      : null
-  })
+      return savedUser
+        ? JSON.parse(savedUser)
+        : null
+    })
 
   const [selectedUser, setSelectedUser] =
     useState(() => {
       const savedUser =
-        localStorage.getItem("selectedUser")
+        sessionStorage.getItem(
+          "selectedUser"
+        )
 
       return savedUser
         ? JSON.parse(savedUser)
@@ -34,7 +39,7 @@ function App() {
     }
 
     socket.emit("user:join", {
-      userId: currentUser._id
+      userId: currentUser._id,
     })
 
     function handleUsersUpdate(
@@ -42,33 +47,35 @@ function App() {
     ) {
       setUsers(updatedUsers)
 
-      setSelectedUser((oldSelectedUser) => {
-        if (!oldSelectedUser) {
-          return null
-        }
+      setSelectedUser(
+        (oldSelectedUser) => {
+          if (!oldSelectedUser) {
+            return null
+          }
 
-        const freshUser =
-          updatedUsers.find(
-            (user) =>
-              user._id ===
-              oldSelectedUser._id
+          const freshUser =
+            updatedUsers.find(
+              (user) =>
+                user._id ===
+                oldSelectedUser._id
+            )
+
+          if (!freshUser) {
+            sessionStorage.removeItem(
+              "selectedUser"
+            )
+
+            return null
+          }
+
+          sessionStorage.setItem(
+            "selectedUser",
+            JSON.stringify(freshUser)
           )
 
-        if (!freshUser) {
-          localStorage.removeItem(
-            "selectedUser"
-          )
-
-          return null
+          return freshUser
         }
-
-        localStorage.setItem(
-          "selectedUser",
-          JSON.stringify(freshUser)
-        )
-
-        return freshUser
-      })
+      )
     }
 
     socket.on(
@@ -87,7 +94,7 @@ function App() {
   function handleLogin(user) {
     setCurrentUser(user)
 
-    localStorage.setItem(
+    sessionStorage.setItem(
       "currentUser",
       JSON.stringify(user)
     )
@@ -96,18 +103,18 @@ function App() {
   function handleSelectUser(user) {
     setSelectedUser(user)
 
-    localStorage.setItem(
+    sessionStorage.setItem(
       "selectedUser",
       JSON.stringify(user)
     )
   }
 
   function handleLogout() {
-    localStorage.removeItem(
+    sessionStorage.removeItem(
       "currentUser"
     )
 
-    localStorage.removeItem(
+    sessionStorage.removeItem(
       "selectedUser"
     )
 
