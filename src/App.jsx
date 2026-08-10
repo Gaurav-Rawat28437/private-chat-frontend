@@ -1,74 +1,91 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"
 
-import Login from "./components/Login";
-import UserList from "./components/UserList";
-import ChatWindow from "./components/ChatWindow";
+import Login from "./components/Login"
+import UserList from "./components/UserList"
+import ChatWindow from "./components/ChatWindow"
 
-import { getUsers } from "./utils/api";
-import socket from "./utils/socket";
+import socket from "./utils/socket"
 
 function App() {
   const [currentUser, setCurrentUser] =
-    useState(null);
+    useState(() => {
+      const savedUser =
+        localStorage.getItem("chatUser")
+
+      return savedUser
+        ? JSON.parse(savedUser)
+        : null
+    })
 
   const [users, setUsers] =
-    useState([]);
+    useState([])
 
   const [selectedUser, setSelectedUser] =
-    useState(null);
+    useState(null)
 
   useEffect(() => {
+    if (!currentUser) {
+      return
+    }
+
+    if (!socket.connected) {
+      socket.connect()
+    }
+
+    socket.emit("user:join", {
+      userId: currentUser._id
+    })
+
     function handleUsersUpdate(
       updatedUsers
     ) {
-      setUsers(updatedUsers);
+      setUsers(updatedUsers)
+
+      setSelectedUser((oldSelectedUser) => {
+        if (!oldSelectedUser) {
+          return null
+        }
+
+        return (
+          updatedUsers.find(
+            (user) =>
+              user._id ===
+              oldSelectedUser._id
+          ) || oldSelectedUser
+        )
+      })
     }
 
     socket.on(
       "users:update",
       handleUsersUpdate
-    );
+    )
 
     return () => {
       socket.off(
         "users:update",
         handleUsersUpdate
-      );
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!currentUser) {
-      return;
+      )
     }
-
-    socket.emit("user:join", {
-      userId: currentUser._id,
-    });
-
-    async function loadUsers() {
-      try {
-        const data = await getUsers();
-
-        setUsers(data);
-      } catch (error) {
-        console.error(
-          "Users error:",
-          error.message
-        );
-      }
-    }
-
-    loadUsers();
-  }, [currentUser]);
+  }, [currentUser])
 
   function handleLogin(user) {
-    setCurrentUser(user);
-    setSelectedUser(null);
+    localStorage.setItem(
+      "chatUser",
+      JSON.stringify(user)
+    )
+
+    setCurrentUser(user)
   }
 
-  function handleSelectUser(user) {
-    setSelectedUser(user);
+  function handleLogout() {
+    localStorage.removeItem("chatUser")
+
+    socket.disconnect()
+
+    setCurrentUser(null)
+    setUsers([])
+    setSelectedUser(null)
   }
 
   if (!currentUser) {
@@ -76,30 +93,38 @@ function App() {
       <Login
         onLogin={handleLogin}
       />
-    );
+    )
   }
 
   return (
     <div className="h-screen bg-slate-100 flex">
       <aside className="w-80 bg-white border-r border-slate-200 flex flex-col">
-        <div className="p-5 border-b">
-          <h1 className="text-xl font-bold">
-            Private Chat
-          </h1>
+        <div className="p-5 border-b border-slate-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-slate-500">
+                Logged in as
+              </p>
 
-          <p className="text-sm text-slate-500">
-            Logged in as{" "}
-            {currentUser.username}
-          </p>
+              <h1 className="font-bold text-slate-800">
+                {currentUser.username}
+              </h1>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="text-sm text-red-500 hover:text-red-700"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         <UserList
           users={users}
           currentUser={currentUser}
           selectedUser={selectedUser}
-          onSelectUser={
-            handleSelectUser
-          }
+          onSelectUser={setSelectedUser}
         />
       </aside>
 
@@ -108,7 +133,7 @@ function App() {
         selectedUser={selectedUser}
       />
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
