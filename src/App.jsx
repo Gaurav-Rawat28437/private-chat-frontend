@@ -1,35 +1,36 @@
 import { useEffect, useState } from "react"
 
 import Login from "./components/Login"
-import UserList from "./components/UserList"
 import ChatWindow from "./components/ChatWindow"
+import UserList from "./components/UserList"
 
 import socket from "./utils/socket"
 
 function App() {
-  const [currentUser, setCurrentUser] =
+  const [currentUser, setCurrentUser] = useState(() => {
+    const savedUser =
+      localStorage.getItem("currentUser")
+
+    return savedUser
+      ? JSON.parse(savedUser)
+      : null
+  })
+
+  const [selectedUser, setSelectedUser] =
     useState(() => {
       const savedUser =
-        localStorage.getItem("chatUser")
+        localStorage.getItem("selectedUser")
 
       return savedUser
         ? JSON.parse(savedUser)
         : null
     })
 
-  const [users, setUsers] =
-    useState([])
-
-  const [selectedUser, setSelectedUser] =
-    useState(null)
+  const [users, setUsers] = useState([])
 
   useEffect(() => {
     if (!currentUser) {
       return
-    }
-
-    if (!socket.connected) {
-      socket.connect()
     }
 
     socket.emit("user:join", {
@@ -46,13 +47,27 @@ function App() {
           return null
         }
 
-        return (
+        const freshUser =
           updatedUsers.find(
             (user) =>
               user._id ===
               oldSelectedUser._id
-          ) || oldSelectedUser
+          )
+
+        if (!freshUser) {
+          localStorage.removeItem(
+            "selectedUser"
+          )
+
+          return null
+        }
+
+        localStorage.setItem(
+          "selectedUser",
+          JSON.stringify(freshUser)
         )
+
+        return freshUser
       })
     }
 
@@ -70,22 +85,35 @@ function App() {
   }, [currentUser])
 
   function handleLogin(user) {
+    setCurrentUser(user)
+
     localStorage.setItem(
-      "chatUser",
+      "currentUser",
       JSON.stringify(user)
     )
+  }
 
-    setCurrentUser(user)
+  function handleSelectUser(user) {
+    setSelectedUser(user)
+
+    localStorage.setItem(
+      "selectedUser",
+      JSON.stringify(user)
+    )
   }
 
   function handleLogout() {
-    localStorage.removeItem("chatUser")
+    localStorage.removeItem(
+      "currentUser"
+    )
 
-    socket.disconnect()
+    localStorage.removeItem(
+      "selectedUser"
+    )
 
     setCurrentUser(null)
-    setUsers([])
     setSelectedUser(null)
+    setUsers([])
   }
 
   if (!currentUser) {
@@ -102,13 +130,13 @@ function App() {
         <div className="p-5 border-b border-slate-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-500">
-                Logged in as
-              </p>
-
-              <h1 className="font-bold text-slate-800">
-                {currentUser.username}
+              <h1 className="text-xl font-bold text-slate-800">
+                Private Chat
               </h1>
+
+              <p className="text-sm text-slate-500 mt-1">
+                {currentUser.username}
+              </p>
             </div>
 
             <button
@@ -124,7 +152,7 @@ function App() {
           users={users}
           currentUser={currentUser}
           selectedUser={selectedUser}
-          onSelectUser={setSelectedUser}
+          onSelectUser={handleSelectUser}
         />
       </aside>
 
